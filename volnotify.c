@@ -15,21 +15,19 @@ enum sound_modus {
 	TOGGLE,
 };
 
-typedef struct _NotifyNotificationPrivate
-{
+typedef struct _NotifyNotificationPrivate {
 	guint32 id;
 	char *appname;
 	char summary[1024];
 	const char *icon;
-
-} libnotify;
+}libnotify;
 
 struct snd_mixer {
+	long min;
+	long max;
 	snd_mixer_t *handle;
 	snd_mixer_selem_id_t *sid;
 	snd_mixer_elem_t *el;
-	long min;
-	long max;
 };
 
 static int show_notification(libnotify *notify, guint32 id)
@@ -46,7 +44,7 @@ static int show_notification(libnotify *notify, guint32 id)
 	notify_notification_show(container, NULL);
 	g_object_unref(G_OBJECT(container));
 	notify_uninit();
-	
+
 	return 0;
 }
 
@@ -58,24 +56,27 @@ static long get_volume(struct snd_mixer *m)
 	return 100 *(cur) / m->max + 1;;
 }
 
+#define ICON_PATH "/home/marko/.icons/Clarity/scalable/status/"
+#define ICON(icon) ICON_PATH icon
+
 static void set_text(libnotify *n, int state, int volume)
 {
 	sprintf(n->summary, "System volume: %d ", volume);
 
 	if (!state){
 		strcat(n->summary, "[off]");
-		n->icon = "/home/marko/.icons/Clarity/scalable/status/audio-volume-muted.svg";
+		n->icon = ICON("audio-volume-muted.svg");
 		return;
 	}
 	
 	if (volume >= 90 && volume <= 100)
-	  n->icon = "/home/marko/.icons/Clarity/scalable/status/audio-volume-high.svg";
+		n->icon = ICON("audio-volume-high.svg");
 	else if(volume <= 89 && volume >= 40)
-	  n->icon = "/home/marko/.icons/Clarity/scalable/status/audio-volume-medium.svg";
+		n->icon = ICON("audio-volume-medium.svg");
 	else if (volume <= 39 && volume >= 1)
-	  n->icon = "/home/marko/.icons/Clarity/scalable/status/audio-volume-low.svg";
+		n->icon = ICON("audio-volume-low.svg");
 	else if (volume == 0)
-	  n->icon = "/home/marko/.icons/Clarity/scalable/status/audio-volume-low-zero-panel.svg";
+		n->icon = ICON("audio-volume-low-zero-panel.svg");
 
 	return;
 }
@@ -90,16 +91,16 @@ static int snd_mixer_init(struct snd_mixer *m)
 	snd_mixer_selem_id_malloc(&m->sid);
 	snd_mixer_selem_id_set_index(m->sid, 0);
 	snd_mixer_selem_id_set_name(m->sid, SOUND_ELEMENT);
-	
+
 	m->el = snd_mixer_find_selem(m->handle, m->sid);
-	
+
 	return 0;
 }
 
 static int setvolume(struct snd_mixer *m, enum sound_modus action, long step)
 {
 	libnotify notify;
-	
+
 	notify.appname = "VolNotify";
 	notify.id = 191;
 	notify.icon = NULL;
@@ -141,22 +142,22 @@ int main(int argc, char *argv[])
 
 	for (i = 1; i < argc; i++) {
 		switch(argv[i][1]) {
-			case 'i':
-				vol = atoi(argv[i + 1]);
-				setvolume(&mixer, INCREMENT, vol);
-				break;
-			case 'd':
-				vol = atoi(argv[i + 1]);
-				setvolume(&mixer, DECREMENT, vol);
-				break;
-			case 't':
-				setvolume(&mixer, TOGGLE, 0);
-				break;
-			case 'g':
-				fprintf(stdout, "%zu ", get_volume(&mixer));
-				break;
-			default:
-				break;
+		case 'i':
+			vol = atoi(argv[i + 1]);
+			setvolume(&mixer, INCREMENT, vol);
+			break;
+		case 'd':
+			vol = atoi(argv[i + 1]);
+			setvolume(&mixer, DECREMENT, vol);
+			break;
+		case 't':
+			setvolume(&mixer, TOGGLE, 0);
+			break;
+		case 'g':
+			fprintf(stdout, "%zu ", get_volume(&mixer));
+			break;
+		default:
+			break;
 		}
 	}
 
