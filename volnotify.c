@@ -48,6 +48,16 @@ static int show_notification(libnotify *notify, guint32 id)
 	return 0;
 }
 
+int getdwmblockspid()
+{
+	char buf[16];
+	FILE *fp = popen("pidof -s dwmblocks", "r");
+	fgets(buf, sizeof(buf), fp);
+	pid_t pid = strtoul(buf, NULL, 10);
+	pclose(fp);
+	return pid;
+}
+
 static long get_volume(struct snd_mixer *m)
 {
 	long cur;
@@ -61,14 +71,14 @@ static long get_volume(struct snd_mixer *m)
 
 static void set_text(libnotify *n, int state, int volume)
 {
-	sprintf(n->summary, "System volume: %d ", volume);
+	sprintf(n->summary, "<b>System Volume: %d</b>", volume);
 
 	if (!state){
 		strcat(n->summary, "[off]");
 		n->icon = ICON("audio-volume-muted.svg");
 		return;
 	}
-	
+
 	if (volume >= 90 && volume <= 100)
 		n->icon = ICON("audio-volume-high.svg");
 	else if(volume <= 89 && volume >= 40)
@@ -145,16 +155,20 @@ int main(int argc, char *argv[])
 		case 'i':
 			vol = atoi(argv[i + 1]);
 			setvolume(&mixer, INCREMENT, vol);
+
+			kill(getdwmblockspid(), 44);
 			break;
 		case 'd':
 			vol = atoi(argv[i + 1]);
 			setvolume(&mixer, DECREMENT, vol);
+			kill(getdwmblockspid(), 44);
 			break;
 		case 't':
 			setvolume(&mixer, TOGGLE, 0);
+			kill(getdwmblockspid(), 44);
 			break;
 		case 'g':
-			fprintf(stdout, "%zu ", get_volume(&mixer));
+			fprintf(stdout, "%zu", get_volume(&mixer));
 			break;
 		default:
 			break;
